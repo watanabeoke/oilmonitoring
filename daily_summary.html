@@ -264,6 +264,10 @@
         <div class="table-container">
             <div class="table-header">
                 <h2><i class="fa-solid fa-list"></i> ข้อมูลรายงานทั้งหมดจัดเรียงตามพื้นที่</h2>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="exportToExcel()" class="btn-nav btn-outline" style="cursor:pointer; border-color:var(--success); color:var(--success);"><i class="fa-solid fa-file-excel"></i> ส่งออก Excel</button>
+                    <button onclick="exportToJson()" class="btn-nav btn-outline" style="cursor:pointer; border-color:var(--warning); color:var(--warning);"><i class="fa-solid fa-file-code"></i> ส่งออก JSON</button>
+                </div>
             </div>
             <div style="overflow-x: auto;">
                 <table id="dataTable">
@@ -286,6 +290,9 @@
         </div>
 
     </div>
+
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -389,6 +396,54 @@
                 }
             };
             window.requestAnimationFrame(step);
+        }
+
+        function exportToExcel() {
+            const reports = JSON.parse(localStorage.getItem('shortage_reports') || '[]');
+            if (reports.length === 0) {
+                alert("ไม่มีข้อมูลสำหรับส่งออก");
+                return;
+            }
+            
+            // Prepare data for Excel
+            const excelData = reports.map(r => ({
+                "รหัสรายงาน": r.id,
+                "จังหวัด": r.province,
+                "เขต/อำเภอ": r.district,
+                "แบรนด์": r.station_brand,
+                "ชื่อสถานี": r.station_name,
+                "สถานะ": r.status === "Limited Supply" ? "มีจำนวนจำกัด" : "น้ำมันหมด",
+                "ชนิดน้ำมันที่ขาด": r.shortage_fuels.join(', '),
+                "ปริมาณคงเหลือ (ลิตร)": r.remaining_liters || "ไม่ระบุ",
+                "จำกัดการเติม": r.fill_limit || "ไม่ระบุ",
+                "ละติจูด": r.lat,
+                "ลองจิจูด": r.lng,
+                "เวลาที่รายงาน": new Date(r.timestamp).toLocaleString('th-TH')
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "รายงานสถานการณ์น้ำมัน");
+            
+            XLSX.writeFile(wb, "oil_shortage_report.xlsx");
+        }
+
+        function exportToJson() {
+            const reports = localStorage.getItem('shortage_reports') || '[]';
+            if (reports === '[]') {
+                alert("ไม่มีข้อมูลสำหรับส่งออก");
+                return;
+            }
+            
+            const blob = new Blob([reports], { type: "application/json;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "oil_shortage_report.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>
