@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผนที่สถานการณ์น้ำมัน - Dashboard</title>
+    <!-- Fonts and Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header-bar {
+            background: var(--surface);
+            padding: 15px 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .header-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-nav {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar stats */
+        .sidebar {
+            width: 320px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 500;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+            animation: slideRight 0.4s ease-out;
+        }
+
+        @keyframes slideRight {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .stat-card {
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-icon {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .icon-blue { color: #3b82f6; }
+        .icon-amber { color: #f59e0b; }
+        .icon-danger { color: #ef4444; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            margin: 5px 0;
+            line-height: 1;
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .recent-reports-header {
+            font-weight: 600;
+            margin-top: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recent-item {
+            padding: 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .recent-item.status-limited { border-left-color: var(--warning); }
+        .recent-item.status-out { border-left-color: var(--danger); }
+
+        .recent-item:hover {
+            background: #f1f5f9;
+        }
+
+        .ri-title { font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
+        .ri-desc { color: var(--text-muted); display: flex; justify-content: space-between;}
+
+        /* Map Container */
+        #map {
+            flex: 1;
+            height: 100%;
+            background: #e5e7eb;
+            z-index: 10;
+        }
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0;
+            width: 280px !important;
+        }
+
+        .popup-header {
+            padding: 12px 15px;
+            color: white;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        .popup-header.limited { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .popup-header.out { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        .popup-title { font-weight: 600; font-size: 1rem; margin-bottom: 2px;}
+        .popup-subtitle { font-size: 0.8rem; opacity: 0.9; }
+
+        .popup-body {
+            padding: 15px;
+            background: white;
+            font-family: 'Prompt', sans-serif;
+            color: var(--text-main);
+        }
+
+        .popup-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            align-items: flex-start;
+        }
+
+        .popup-label {
+            width: 90px;
+            color: var(--text-muted);
+            font-weight: 500;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .popup-value {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .val-danger { color: var(--danger); }
+        .val-warning { color: var(--warning); font-size: 0.95rem; font-weight: 600; }
+        
+        .fuel-badge {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            display: inline-block;
+            margin: 2px 2px 0 0;
+            color: #475569;
+        }
+
+        /* Marker Pulses */
+        .marker-pulse {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.8);
+            position: relative;
+        }
+        .marker-pulse::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid rgba(239, 68, 68, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+        .marker-pulse.limited { background: rgba(245, 158, 11, 0.8); }
+        .marker-pulse.limited::after { border-color: rgba(245, 158, 11, 0.5); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .header-bar { padding: 10px 15px; flex-direction: column; gap: 10px; }
+            .main-layout { flex-direction: column-reverse; }
+            .sidebar { 
+                width: 100%; 
+                height: 40%; 
+                border-right: none; 
+                border-top: 1px solid var(--border); 
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            }
+            #map { height: 60%; }
+            .stat-card { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="header-title">
+            <i class="fa-solid fa-map-location-dot"></i> Dashboard แผนที่สถานการณ์น้ำมัน
+        </div>
+        <div class="nav-buttons">
+            <a href="daily_summary.html" class="btn-nav btn-outline"><i class="fa-solid fa-chart-pie"></i> สรุปรายวัน</a>
+            <a href="report_shortage001.html" class="btn-nav btn-outline"><i class="fa-solid fa-pen-to-square"></i> แจ้งรายงานใหม่</a>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="sidebar">
+            <div class="stat-card">
+                <i class="fa-solid fa-droplet stat-icon icon-blue"></i>
+                <div class="stat-value" id="tot-liters">-</div>
+                <div class="stat-title">ปริมาณคงเหลือรวม (ลิตร)</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fa-solid fa-gas-pump stat-icon icon-danger"></i>
+                <div class="stat-value" id="tot-stations">-</div>
+                <div class="stat-title">จำนวนสถานีที่ได้รับผลกระทบ</div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fa-solid fa-map stat-icon icon-amber"></i>
+                <div class="stat-value" id="tot-provinces">-</div>
+                <div class="stat-title">จังหวัดที่มีการรายงาน</div>
+            </div>
+
+            <div class="recent-reports-header">
+                <span><i class="fa-solid fa-clock-rotate-left"></i> รายงานล่าสุด</span>
+            </div>
+            <div class="recent-list" id="recent-list">
+                <!-- Javascript populates -->
+            </div>
+        </div>
+        
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script>
+        let map;
+        const markersList = []; // Array to store marker instances
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadAndRenderData();
+            
+            // Listen for changes from report tab
+            window.addEventListener('storage', (e) => {
+                if(e.key === 'shortage_reports') {
+                    loadAndRenderData();
+                }
+            });
+        });
+
+        function initMap() {
+            // Initialize map centered roughly on Thailand
+            map = L.map('map', {
+                zoomControl: false // Custom position if needed
+            }).setView([13.7563, 100.5018], 6);
+
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        function loadAndRenderData() {
+            const reports = JSON.parse(localStorage.getItem('shortage_reports') || '[]');
+            
+            // Clear existing markers
+            markersList.forEach(m => map.removeLayer(m));
+            markersList.length = 0;
+
+            // Stats calculation
+            let totalLiters = 0;
+            let provinces = new Set();
+            
+            if (reports.length === 0) {
+                document.getElementById('tot-liters').innerText = '0';
+                document.getElementById('tot-stations').innerText = '0';
+                document.getElementById('tot-provinces').innerText = '0';
+                document.getElementById('recent-list').innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:0.9rem;">ยังไม่มีข้อมูล</div>';
+                
+                // Keep default view
+                map.setView([13.7563, 100.5018], 6);
+                return;
+            }
+
+            const bounds = L.latLngBounds();
+
+            reports.forEach(r => {
+                // Calculate stats
+                if(r.remaining_liters) {
+                    const l = parseFloat(r.remaining_liters);
+                    if(!isNaN(l)) totalLiters += l;
+                }
+                if(r.province) provinces.add(r.province);
+
+                // Add to map
+                if(r.lat && r.lng) {
+                    const isLimited = r.status === "Limited Supply";
+                    const statusClass = isLimited ? 'limited' : 'out';
+                    
+                    // Create Custom DivIcon
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="marker-pulse ${statusClass}"></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10],
+                        popupAnchor: [0, -10]
+                    });
+
+                    const marker = L.marker([r.lat, r.lng], { icon: customIcon }).addTo(map);
+                    bounds.extend([r.lat, r.lng]);
+
+                    // Formatting Popup Content
+                    const brandStr = r.station_brand && r.station_brand !== 'Other' ? `[${r.station_brand}] ` : '';
+                    const fuelBadges = r.shortage_fuels.map(f => `<span class="fuel-badge">${f}</span>`).join('');
+                    const remainingStr = r.remaining_liters ? parseFloat(r.remaining_liters).toLocaleString() : 'ไม่ระบุ';
+                    const limitStr = r.fill_limit || '-';
+                    const timeStr = new Date(r.timestamp).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour:'2-digit', minute:'2-digit'});
+
+                    const popupContent = `
+                        <div class="popup-header ${statusClass}">
+                            <div class="popup-title">${brandStr}${r.station_name}</div>
+                            <div class="popup-subtitle"><i class="fa-solid fa-location-dot"></i> อ.${r.district}, จ.${r.province}</div>
+                        </div>
+                        <div class="popup-body">
+                            <div class="popup-row">
+                                <div class="popup-label"><i class="fa-solid fa-circle-exclamation"></i> สถานะ</div>
+                                <div class="popup-value ${isLimited ? 'val-warning' : 'val-danger'}">${isLimited ? 'มีจำกัด' : 'หมด'}</div>
+                            </div>
+                            <div class="popup-row">
+                                <div class="popup-label"><i class="fa-solid fa-gas-pump"></i> ขาดแคลน</div>
+                                <div class="popup-value">${fuelBadges}</div>
+                            </div>
+                            <div class="popup-row">
+                                <div class="popup-label"><i class="fa-solid fa-droplet"></i> คงเหลือ</div>
+                                <div class="popup-value val-warning">${remainingStr} ลิตร</div>
+                            </div>
+                            <div class="popup-row">
+                                <div class="popup-label"><i class="fa-solid fa-gauge-simple"></i> จำกัดเติม</div>
+                                <div class="popup-value val-danger">${limitStr}</div>
+                            </div>
+                            <div class="popup-row" style="margin-top:10px; border-top:1px solid #e2e8f0; padding-top:8px;">
+                                <div class="popup-label" style="font-size:0.75rem;"><i class="fa-regular fa-clock"></i> อัปเดตเมื่อ</div>
+                                <div class="popup-value" style="font-size:0.75rem; color:#64748b;">${timeStr}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                    
+                    // Attach report object to marker for sidebar interaction
+                    marker.reportData = r;
+                    markersList.push(marker);
+                }
+            });
+
+            // If we have valid bounds, fit the map to them
+            if(markersList.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            }
+
+            // Animate Stats
+            animateValue('tot-liters', 0, totalLiters, 1000);
+            animateValue('tot-stations', 0, reports.length, 1000);
+            animateValue('tot-provinces', 0, provinces.size, 1000);
+
+            // Populate Sidebar List
+            renderSidebarList(reports);
+        }
+
+        function renderSidebarList(reports) {
+            const list = document.getElementById('recent-list');
+            list.innerHTML = '';
+            
+            // Sort by time, newest first, take top 10
+            const sorted = [...reports].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+
+            sorted.forEach(r => {
+                const isLimited = r.status === "Limited Supply";
+                const timeStr = new Date(r.timestamp).toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'});
+                const brandStr = r.station_brand && r.station_brand !== 'Other' ? `[${r.station_brand}] ` : '';
+                
+                const item = document.createElement('div');
+                item.className = `recent-item ${isLimited ? 'status-limited' : 'status-out'}`;
+                item.innerHTML = `
+                    <div class="ri-title">${brandStr}${r.station_name}</div>
+                    <div class="ri-desc">
+                        <span><i class="fa-solid fa-location-dot"></i> จ.${r.province}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                `;
+
+                // Click to focus on marker
+                item.addEventListener('click', () => {
+                    const marker = markersList.find(m => m.reportData.id === r.id);
+                    if(marker) {
+                        map.setView(marker.getLatLng(), 15, { animate: true });
+                        marker.openPopup();
+                        
+                        // Scroll map to top on mobile
+                        if(window.innerWidth <= 768) {
+                            window.scrollTo({top: 0, behavior: 'smooth'});
+                        }
+                    }
+                });
+
+                list.appendChild(item);
+            });
+        }
+
+        // Helper to animate numbers
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                obj.innerText = current.toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
+</body>
+</html>

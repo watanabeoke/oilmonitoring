@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานสถานการณ์น้ำมันหมด - ผู้ลงพื้นที่</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --surface: #ffffff;
+            --background: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-image: radial-gradient(circle at top right, #e0e7ff, transparent 400px),
+                              radial-gradient(circle at bottom left, #dbeafe, transparent 400px);
+            background-attachment: fixed;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .form-content {
+            padding: 30px 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px 12px 40px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-main);
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--focus-ring);
+        }
+
+        .form-control:focus + i, .form-control:focus ~ i {
+            color: var(--primary);
+        }
+
+        .fuel-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .fuel-checkbox {
+            display: none;
+        }
+
+        .fuel-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: var(--text-main);
+        }
+
+        .fuel-checkbox:checked + .fuel-label {
+            background: #fee2e2;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .fuel-checkbox:checked + .fuel-label::before {
+            content: '\f00d';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 8px;
+        }
+
+        .other-fuel-container {
+            grid-column: 1 / -1;
+            display: none;
+            margin-top: 5px;
+        }
+
+        .other-fuel-container.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .status-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .status-radio {
+            display: none;
+        }
+
+        .status-label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: var(--text-main);
+        }
+
+        .status-label i {
+            margin-right: 8px;
+            font-size: 1.1em;
+        }
+
+        /* Out of stock style */
+        #status_out:checked + .status-label {
+            background-color: #fee2e2;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Limited supply style */
+        #status_limited:checked + .status-label {
+            background-color: #fef3c7;
+            border-color: #d97706; /* Amber / Orange */
+            color: #d97706;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        #location-btn {
+            background: #f1f5f9;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+
+        #location-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .auto-fill-status {
+            font-size: 0.8rem;
+            color: var(--success);
+            display: none;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        /* History Section */
+        .history-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .history-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .history-card::before {
+            content:'';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--primary);
+        }
+        
+        .history-card.status-limited::before { background: #d97706; }
+        .history-card.status-out::before { background: var(--danger); }
+
+        .hc-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .hc-brand { font-weight: 600; font-size: 0.95rem; color: var(--text-main); }
+        .hc-time { font-size: 0.75rem; color: var(--text-muted); }
+        .hc-location { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
+        .hc-fuels { font-size: 0.8rem; font-weight: 500; color: var(--danger); margin-bottom: 4px;}
+        .hc-remaining { font-size: 0.8rem; color: var(--warning); display: flex; align-items: center; gap:4px;}
+
+        .no-history {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 20px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--surface);
+            color: var(--text-main);
+            padding: 16px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            color: var(--success);
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fa-solid fa-gas-pump"></i> รายงานน้ำมันหมด</h1>
+            <p>ระบบรายงานสถานะสถานีบริการน้ำมัน</p>
+        </div>
+
+        <div class="form-content">
+            <form id="report-form">
+                
+                <button type="button" id="location-btn" onclick="getLocation()">
+                    <i class="fa-solid fa-location-crosshairs"></i> ดึงตำแหน่งปัจจุบัน
+                </button>
+                <div class="auto-fill-status" id="location-status"><i class="fa-solid fa-check"></i> ดึงตำแหน่งสำเร็จ</div>
+
+                <div class="form-group">
+                    <label>แบรนด์สถานีบริการ <span style="color:var(--danger)">*</span></label>
+                    <div class="input-group">
+                        <select id="station_brand" class="form-control" required style="padding-left: 40px;">
+                            <option value="">เลือกแบรนด์สถานีบริการ</option>
+                            <option value="PTT">PTT Station (ปตท.)</option>
+                            <option value="Bangchak">Bangchak (บางจาก)</option>
+                            <option value="PT">PT</option>
+                            <option value="Shell">Shell</option>
+                            <option value="Caltex">Caltex</option>
+                            <option value="Susco">Susco</option>
+                            <option value="Esso">Esso</option>
+                            <option value="Pure">Pure</option>
+                            <option value="Other">อื่นๆ</option>
+                        </select>
+                        <i class="fa-solid fa-gas-pump"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ชื่อสถานีบริการหรือสาขา <span style="color:var(--danger)">*</span></label>
+                    <div class="input-group">
+                        <input type="text" id="station_name" class="form-control" placeholder="เช่น สาขาสุขุมวิท 71" required>
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ปริมาณการเติมต่อคัน (ลิตร/บาท) <span style="color:var(--text-muted)">(ถ้ามีการจำกัด)</span></label>
+                    <div class="input-group">
+                        <input type="text" id="fill_limit" class="form-control" placeholder="เช่น 500 บาท หรือ 20 ลิตร">
+                        <i class="fa-solid fa-gauge-simple"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>จังหวัด <span style="color:var(--danger)">*</span></label>
+                    <div class="input-group">
+                        <select id="province" class="form-control" required style="padding-left: 40px;">
+                            <option value="">เลือกจังหวัด</option>
+                            <option value="กระบี่">กระบี่</option>
+                            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
+                            <option value="กาญจนบุรี">กาญจนบุรี</option>
+                            <option value="กาฬสินธุ์">กาฬสินธุ์</option>
+                            <option value="กำแพงเพชร">กำแพงเพชร</option>
+                            <option value="ขอนแก่น">ขอนแก่น</option>
+                            <option value="จันทบุรี">จันทบุรี</option>
+                            <option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option>
+                            <option value="ชลบุรี">ชลบุรี</option>
+                            <option value="ชัยนาท">ชัยนาท</option>
+                            <option value="ชัยภูมิ">ชัยภูมิ</option>
+                            <option value="ชุมพร">ชุมพร</option>
+                            <option value="เชียงราย">เชียงราย</option>
+                            <option value="เชียงใหม่">เชียงใหม่</option>
+                            <option value="ตรัง">ตรัง</option>
+                            <option value="ตราด">ตราด</option>
+                            <option value="ตาก">ตาก</option>
+                            <option value="นครนายก">นครนายก</option>
+                            <option value="นครปฐม">นครปฐม</option>
+                            <option value="นครพนม">นครพนม</option>
+                            <option value="นครราชสีมา">นครราชสีมา</option>
+                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                            <option value="นครสวรรค์">นครสวรรค์</option>
+                            <option value="นนทบุรี">นนทบุรี</option>
+                            <option value="นราธิวาส">นราธิวาส</option>
+                            <option value="น่าน">น่าน</option>
+                            <option value="บึงกาฬ">บึงกาฬ</option>
+                            <option value="บุรีรัมย์">บุรีรัมย์</option>
+                            <option value="ปทุมธานี">ปทุมธานี</option>
+                            <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option>
+                            <option value="ปราจีนบุรี">ปราจีนบุรี</option>
+                            <option value="ปัตตานี">ปัตตานี</option>
+                            <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
+                            <option value="พะเยา">พะเยา</option>
+                            <option value="พังงา">พังงา</option>
+                            <option value="พัทลุง">พัทลุง</option>
+                            <option value="พิจิตร">พิจิตร</option>
+                            <option value="พิษณุโลก">พิษณุโลก</option>
+                            <option value="เพชรบุรี">เพชรบุรี</option>
+                            <option value="เพชรบูรณ์">เพชรบูรณ์</option>
+                            <option value="แพร่">แพร่</option>
+                            <option value="ภูเก็ต">ภูเก็ต</option>
+                            <option value="มหาสารคาม">มหาสารคาม</option>
+                            <option value="มุกดาหาร">มุกดาหาร</option>
+                            <option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option>
+                            <option value="ยโสธร">ยโสธร</option>
+                            <option value="ยะลา">ยะลา</option>
+                            <option value="ร้อยเอ็ด">ร้อยเอ็ด</option>
+                            <option value="ระนอง">ระนอง</option>
+                            <option value="ระยอง">ระยอง</option>
+                            <option value="ราชบุรี">ราชบุรี</option>
+                            <option value="ลพบุรี">ลพบุรี</option>
+                            <option value="ลำปาง">ลำปาง</option>
+                            <option value="ลำพูน">ลำพูน</option>
+                            <option value="เลย">เลย</option>
+                            <option value="ศรีสะเกษ">ศรีสะเกษ</option>
+                            <option value="สกลนคร">สกลนคร</option>
+                            <option value="สงขลา">สงขลา</option>
+                            <option value="สตูล">สตูล</option>
+                            <option value="สมุทรปราการ">สมุทรปราการ</option>
+                            <option value="สมุทรสงคราม">สมุทรสงคราม</option>
+                            <option value="สมุทรสาคร">สมุทรสาคร</option>
+                            <option value="สระแก้ว">สระแก้ว</option>
+                            <option value="สระบุรี">สระบุรี</option>
+                            <option value="สิงห์บุรี">สิงห์บุรี</option>
+                            <option value="สุโขทัย">สุโขทัย</option>
+                            <option value="สุพรรณบุรี">สุพรรณบุรี</option>
+                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                            <option value="สุรินทร์">สุรินทร์</option>
+                            <option value="หนองคาย">หนองคาย</option>
+                            <option value="หนองบัวลำภู">หนองบัวลำภู</option>
+                            <option value="อ่างทอง">อ่างทอง</option>
+                            <option value="อำนาจเจริญ">อำนาจเจริญ</option>
+                            <option value="อุดรธานี">อุดรธานี</option>
+                            <option value="อุตรดิตถ์">อุตรดิตถ์</option>
+                            <option value="อุทัยธานี">อุทัยธานี</option>
+                            <option value="อุบลราชธานี">อุบลราชธานี</option>
+                        </select>
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>อำเภอ/เขต</label>
+                    <div class="input-group">
+                        <input type="text" id="district" class="form-control" placeholder="ระบุอำเภอ">
+                        <i class="fa-solid fa-map-pin"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ประเภทน้ำมันที่หมด <span style="color:var(--danger)">*</span> (เลือกได้มากกว่า 1)</label>
+                    <div class="fuel-grid">
+                        <div>
+                            <input type="checkbox" id="fuel_diesel" value="Diesel" class="fuel-checkbox">
+                            <label for="fuel_diesel" class="fuel-label">ดีเซล (Diesel)</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="fuel_g95" value="Gasohol95" class="fuel-checkbox">
+                            <label for="fuel_g95" class="fuel-label">แก๊สโซฮอล์ 95</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="fuel_g91" value="Gasohol91" class="fuel-checkbox">
+                            <label for="fuel_g91" class="fuel-label">แก๊สโซฮอล์ 91</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="fuel_e20" value="E20" class="fuel-checkbox">
+                            <label for="fuel_e20" class="fuel-label">E20</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="fuel_b7" value="DieselB7" class="fuel-checkbox">
+                            <label for="fuel_b7" class="fuel-label">ดีเซล B7</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="fuel_other" value="Other" class="fuel-checkbox">
+                            <label for="fuel_other" class="fuel-label">อื่นๆ</label>
+                        </div>
+                        <div class="other-fuel-container" id="other-fuel-container">
+                            <input type="text" id="fuel_other_text" class="form-control" placeholder="ระบุประเภทน้ำมันอื่นๆ...">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>สถานะปัจจุบัน <span style="color:var(--danger)">*</span></label>
+                    <div class="status-options">
+                        <input type="radio" name="report_status" id="status_out" value="Out of Stock" class="status-radio" required>
+                        <label for="status_out" class="status-label">
+                            <i class="fa-solid fa-circle-xmark"></i> น้ำมันหมด
+                        </label>
+                        
+                        <input type="radio" name="report_status" id="status_limited" value="Limited Supply" class="status-radio" required>
+                        <label for="status_limited" class="status-label">
+                            <i class="fa-solid fa-circle-exclamation"></i> มีจำนวนจำกัด
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ปริมาณคงเหลือ (ลิตร) <span style="color:var(--text-muted)">(ถ้าทราบ)</span></label>
+                    <div class="input-group">
+                        <input type="number" id="remaining_liters" class="form-control" placeholder="เช่น 500">
+                        <i class="fa-solid fa-droplet"></i>
+                    </div>
+                </div>
+
+                <input type="hidden" id="latitude" value="">
+                <input type="hidden" id="longitude" value="">
+
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-paper-plane"></i> ส่งรายงาน
+                </button>
+            </form>
+
+            <!-- แสดงประวัติการรายงาน -->
+            <div class="history-section">
+                <div class="history-title" style="justify-content: space-between;">
+                    <div><i class="fa-solid fa-clock-rotate-left"></i> ประวัติล่าสุดของคุณ</div>
+                    <a href="daily_summary.html" style="font-size: 0.85rem; font-weight: 500; color: var(--primary); text-decoration: none; padding: 6px 12px; background: #eff6ff; border-radius: 6px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-chart-pie"></i> ดูสถิติทั้งหมด
+                    </a>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- Javascript will populate this -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>ส่งรายงานสำเร็จ! ข้อมูลถูกบันทึกแล้ว</span>
+    </div>
+
+    <script>
+        // Check if there are existing reports in localStorage
+        if(!localStorage.getItem('shortage_reports')) {
+            localStorage.setItem('shortage_reports', JSON.stringify([]));
+        }
+
+        function getLocation() {
+            const btn = document.getElementById('location-btn');
+            const status = document.getElementById('location-status');
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังค้นหาตำแหน่ง...';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        document.getElementById('latitude').value = position.coords.latitude;
+                        document.getElementById('longitude').value = position.coords.longitude;
+                        
+                        btn.style.display = 'none';
+                        status.style.display = 'block';
+                        status.innerHTML = `<i class="fa-solid fa-check"></i> พิกัด: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+                    },
+                    (error) => {
+                        console.error(error);
+                        btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถดึงตำแหน่งได้';
+                        btn.style.color = 'var(--danger)';
+                        btn.style.borderColor = 'var(--danger)';
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Handle "Other" fuel checkbox toggle
+        document.getElementById('fuel_other').addEventListener('change', function() {
+            const container = document.getElementById('other-fuel-container');
+            if(this.checked) {
+                container.classList.add('show');
+                document.getElementById('fuel_other_text').required = true;
+            } else {
+                container.classList.remove('show');
+                document.getElementById('fuel_other_text').required = false;
+            }
+        });
+
+        document.getElementById('report-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get selected fuels
+            const selectedFuels = [];
+            document.querySelectorAll('.fuel-checkbox:checked').forEach(cb => {
+                if(cb.value === "Other") {
+                    const otherText = document.getElementById('fuel_other_text').value.trim();
+                    if(otherText) selectedFuels.push(otherText);
+                } else {
+                    selectedFuels.push(cb.value);
+                }
+            });
+
+            if (selectedFuels.length === 0) {
+                alert("กรุณาเลือกประเภทน้ำมันอย่างน้อย 1 รายการ");
+                return;
+            }
+
+            // Get status
+            let currentStatus = "Out of Stock";
+            if (document.getElementById('status_limited').checked) {
+                currentStatus = "Limited Supply";
+            }
+
+            // Create report object
+            const report = {
+                id: 'REP' + Date.now().toString().slice(-6),
+                station_brand: document.getElementById('station_brand').value,
+                station_name: document.getElementById('station_name').value,
+                fill_limit: document.getElementById('fill_limit').value,
+                remaining_liters: document.getElementById('remaining_liters').value,
+                province: document.getElementById('province').value,
+                district: document.getElementById('district').value,
+                shortage_fuels: selectedFuels,
+                lat: parseFloat(document.getElementById('latitude').value) || (13.7 + Math.random()*2), // Fallback random coordinates in TH if no GPS
+                lng: parseFloat(document.getElementById('longitude').value) || (100.5 + Math.random()*3),
+                timestamp: new Date().toISOString(), // บันทึกวันที่เวลาแบบ real-time
+                status: currentStatus
+            };
+
+            // Save to localStorage
+            const reports = JSON.parse(localStorage.getItem('shortage_reports') || '[]');
+            reports.push(report);
+            localStorage.setItem('shortage_reports', JSON.stringify(reports));
+
+            // Update history view instantly
+            renderHistory();
+
+            // Show success toast
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            
+            // Reset form
+            this.reset();
+            document.getElementById('location-status').style.display = 'none';
+            document.getElementById('location-btn').style.display = 'flex';
+            document.getElementById('location-btn').innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> ดึงตำแหน่งปัจจุบัน';
+            document.getElementById('location-btn').style.color = '';
+            document.getElementById('location-btn').style.borderColor = '';
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        });
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const reports = JSON.parse(localStorage.getItem('shortage_reports') || '[]');
+            
+            if (reports.length === 0) {
+                list.innerHTML = '<div class="no-history"><i class="fa-solid fa-folder-open"></i> ยังไม่มีประวัติการรายงาน</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            
+            // Show only the 5 most recent reports, sorted newest first
+            const recentReports = [...reports].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+
+            recentReports.forEach(r => {
+                const card = document.createElement('div');
+                const isLimited = r.status === "Limited Supply";
+                const bdClass = isLimited ? "status-limited" : "status-out";
+                card.className = `history-card ${bdClass}`;
+
+                const displayDate = new Date(r.timestamp).toLocaleString('th-TH', {
+                    hour: '2-digit', minute:'2-digit', 
+                    day:'2-digit', month:'short'
+                });
+
+                const brandStr = r.station_brand && r.station_brand !== 'Other' ? `[${r.station_brand}] ` : '';
+                
+                let remainingHtml = '';
+                if(r.remaining_liters) {
+                    remainingHtml = `<div class="hc-remaining"><i class="fa-solid fa-droplet"></i> เหลือ: ${parseFloat(r.remaining_liters).toLocaleString()} ลิตร</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="hc-header">
+                        <div class="hc-brand">${brandStr}${r.station_name}</div>
+                        <div class="hc-time">${displayDate}</div>
+                    </div>
+                    <div class="hc-location"><i class="fa-solid fa-location-dot"></i> จ.${r.province}</div>
+                    <div class="hc-fuels"><i class="fa-solid fa-gas-pump"></i> ${r.shortage_fuels.join(', ')}</div>
+                    ${remainingHtml}
+                `;
+                
+                list.appendChild(card);
+            });
+        }
+
+        // Init history on load
+        renderHistory();
+
+    </script>
+</body>
+</html>
